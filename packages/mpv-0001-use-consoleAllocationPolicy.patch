@@ -1,0 +1,45 @@
+From 951ab2cf8b99630802a9981265fa2d275d4ecdde Mon Sep 17 00:00:00 2001
+From: _ <>
+Date: Tue, 24 Sep 2024 00:00:00 +0000
+Subject: [PATCH] use consoleAllocationPolicy
+
+---
+ meson.build            | 2 +-
+ osdep/mpv.exe.manifest | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 2e0b705a..748dff2d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1793,7 +1793,7 @@ if get_option('cplayer')
+     install_data('etc/mpv-symbolic.svg', install_dir: join_paths(hicolor_dir, 'symbolic', 'apps'))
+ 
+     mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
+-                     win_subsystem: 'windows', install: true)
++                     win_subsystem: 'console', install: true)
+ 
+     if win32
+         wrapper_sources= 'osdep/win32-console-wrapper.c'
+diff --git a/osdep/mpv.exe.manifest b/osdep/mpv.exe.manifest
+index 3cade40a..33ab1ed1 100644
+--- a/osdep/mpv.exe.manifest
++++ b/osdep/mpv.exe.manifest
+@@ -10,10 +10,14 @@
+     <application xmlns="urn:schemas-microsoft-com:asm.v3">
+         <windowsSettings>
+             <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">True/PM</dpiAware>
++            <disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
++            <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</highResolutionScrollingAware>
++            <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</ultraHighResolutionScrollingAware>
+             <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+             <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+             <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
+             <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
++            <consoleAllocationPolicy xmlns="http://schemas.microsoft.com/SMI/2024/WindowsSettings">detached</consoleAllocationPolicy>
+         </windowsSettings>
+     </application>
+     <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+-- 
+2.46.2
+

@@ -3,7 +3,10 @@ PROG=@CMAKE_INSTALL_PREFIX@/bin/@clang_compiler@
 FLAGS="$FLAGS -target @TARGET_CPU@-pc-windows-gnu"
 FLAGS="$FLAGS @driver_mode@ --sysroot @MINGW_INSTALL_PREFIX@"
 FLAGS="$FLAGS -fuse-ld=lld --ld-path=@TARGET_ARCH@-ld"
-FLAGS="$FLAGS -Wno-unused-command-line-argument"
+FLAGS="$FLAGS -Wno-unused-command-line-argument -Wno-int-conversion -Wno-packed -Wno-unused-function -Wno-macro-redefined -Wno-backend-plugin"
+FLAGS="$FLAGS -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00 -DNDEBUG"
+FLAGS="$FLAGS -fsized-deallocation -Xclang -fno-pch-timestamp"
+EXTRA_FLAGS="$EXTRA_FLAGS"
 
 if [ "@TARGET_CPU@" == "aarch64" ]; then
     ARCH_FLAGS="-mcpu=@GCC_ARCH@ -mtune=@M_TUNE@"
@@ -14,12 +17,12 @@ fi
 if [ "$CONF" == "1" ]; then
     SKIP_OPT="-g0 -O0 -fno-lto -fno-data-sections -fno-function-sections"
 else
-    FLAGS="$FLAGS -gcodeview @cfi@ @opt@"
-    if [ "@ENABLE_CCACHE@" == "ON" ]; then
+    FLAGS="$FLAGS @clang_cfi@ @llvm_mllvm@ -gcodeview -O3 -fstrict-flex-arrays=3 -falign-functions=32 -funroll-loops -ffp-contract=fast -fno-math-errno -fno-signed-zeros -fno-trapping-math -fno-stack-protector"
+    if [ "@ENABLE_CCACHE@" == "ON" ] && [ "$NOCCACHE" != "1" ]; then
         CCACHE="ccache"
     fi
     if [ "$GC" != "0" ]; then
-        CLANG_GC="-fdata-sections -ffunction-sections"
+        CLANG_GC="-fdata-sections -ffunction-sections -fomit-frame-pointer -fmerge-all-constants"
     fi
     if [ "$LTO" != "0" ] && [ "@CLANG_PACKAGES_LTO@" == "ON" ]; then
         LTO_FLAGS="-flto=thin"
@@ -27,9 +30,39 @@ else
             LTO_FLAGS="$LTO_FLAGS -flto-jobs=@CPU_COUNT@"
         fi
     fi
+    if [ "$LE_TLS" != "0" ]; then
+        FLAGS="$FLAGS -ftls-model=local-exec"
+    fi
     if [ "@LLVM_ENABLE_PGO@" == "GEN" ] || [ "@LLVM_ENABLE_PGO@" == "CSGEN" ]; then
         export LLVM_PROFILE_FILE="@LLVM_PROFILE_DATA_DIR@/clang-%m.profraw" #enable profraw output only when CONF!=1
     fi
 fi
 
-$CCACHE "$PROG" $LTO_FLAGS $ARCH_FLAGS "$@" $FLAGS $CLANG_GC @CLANG_FLAGS@ @linker@ $SKIP_OPT
+if [ "@CLANG_PACKAGES_PGO@" == "GEN" ] && [ "$PGO" != "0" ]; then
+    PGO_FLAGS="-fprofile-generate="@CLANG_PACKAGES_PROFILE_DATA_DIR@" -fprofile-update=atomic -mllvm -vp-counters-per-site=8"
+else
+    if [ "@CLANG_PACKAGES_PGO@" == "USE" ] && [ "$PGO" != "0" ]; then
+        PGO_FLAGS="-fprofile-use=@CLANG_PACKAGES_PROFDATA_FILE@"
+    fi
+fi
+
+filtered_args=()
+if [ -n "$FILTER_FLAGS" ]; then
+    read -r -a filter_flags_array <<< "$FILTER_FLAGS"
+    for arg in "$@"; do
+        skip=0
+        for filter_flag in "${filter_flags_array[@]}"; do
+            if [ "$arg" == "$filter_flag" ]; then
+                skip=1
+                break
+            fi
+        done
+        if [ $skip -eq 0 ]; then
+            filtered_args+=("$arg")
+        fi
+    done
+else
+    filtered_args=("$@")
+fi
+
+$CCACHE "$PROG" $LTO_FLAGS $PGO_FLAGS $ARCH_FLAGS "${filtered_args[@]}" $FLAGS $CLANG_GC $EXTRA_FLAGS @CLANG_FLAGS@ @linker@ $SKIP_OPT

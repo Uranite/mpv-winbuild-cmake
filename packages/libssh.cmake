@@ -7,14 +7,10 @@ ExternalProject_Add(libssh
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
-        -G Ninja
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
-        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
-        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS=OFF
+        ${cmake_conf_args}
         -DWITH_ZLIB=ON
         -DWITH_EXAMPLES=OFF
+        -DCMAKE_C_FLAGS='${CMAKE_C_FLAGS} -DHAVE_COMPILER__FUNC__=1'
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
           COMMAND bash -c "echo {'Libs.private: -lwsock32 -liphlpapi -lpthread','\nRequires.private: libssl','\nCflags.private: -DLIBSSH_STATIC'} >> <BINARY_DIR>/libssh.pc"
     INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install

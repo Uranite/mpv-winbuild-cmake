@@ -1,5 +1,10 @@
 set(clang_version "19")
 ExternalProject_Add(llvm
+    DEPENDS
+        mimalloc-host
+        libxml2-host
+        zlib-host
+        zstd-host
     GIT_REPOSITORY https://github.com/llvm/llvm-project.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--sparse --filter=tree:0"
@@ -7,7 +12,7 @@ ExternalProject_Add(llvm
     UPDATE_COMMAND ""
     GIT_REMOTE_NAME origin
     GIT_TAG release/19.x
-    LIST_SEPARATOR ,
+    LIST_SEPARATOR ^^
     CONFIGURE_COMMAND ${EXEC} CONF=1 PATH=$O_PATH cmake -H<SOURCE_DIR>/llvm -B<BINARY_DIR>
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
@@ -17,15 +22,13 @@ ExternalProject_Add(llvm
         ${llvm_ccache}
         -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
         -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
-        -DLLVM_TARGETS_TO_BUILD='AArch64,X86,NVPTX'
-        -DLLVM_ENABLE_PROJECTS='clang,lld'
+        -DLLVM_TARGETS_TO_BUILD='AArch64^^X86^^NVPTX'
+        -DLLVM_ENABLE_PROJECTS='clang^^lld'
         -DLLVM_ENABLE_ASSERTIONS=OFF
         -DLLVM_ENABLE_LIBCXX=ON
         -DLLVM_ENABLE_LLD=ON
         -DLLVM_ENABLE_PIC=OFF
         -DLLVM_ENABLE_UNWIND_TABLES=OFF
-        -DLLVM_ENABLE_LIBXML2=OFF
-        -DLLVM_ENABLE_TERMINFO=OFF
         -DLLVM_ENABLE_LTO=${LLVM_ENABLE_LTO}
         -DCLANG_ENABLE_ARCMT=OFF
         -DCLANG_ENABLE_STATIC_ANALYZER=OFF
@@ -55,8 +58,8 @@ ExternalProject_Add(llvm
         -DCLANG_TOOL_CLANG_FORMAT_BUILD=OFF
         -DCLANG_TOOL_CLANG_FORMAT_VS_BUILD=OFF
         -DCLANG_TOOL_CLANG_FUZZER_BUILD=OFF
-        -DCLANG_TOOL_CLANG_INSTALLAPI_BUILD=OFF
         -DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=OFF
+        -DCLANG_TOOL_CLANG_INSTALLAPI_BUILD=OFF
         -DCLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD=OFF
         -DCLANG_TOOL_CLANG_NVLINK_WRAPPER_BUILD=OFF
         -DCLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD=OFF
@@ -79,7 +82,6 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_GOLD_BUILD=OFF
         -DLLVM_TOOL_LLC_BUILD=OFF
         -DLLVM_TOOL_LLI_BUILD=OFF
-        -DLLVM_TOOL_LLVM_DRIVER_BUILD=ON
         -DLLVM_TOOL_LLVM_AS_BUILD=OFF
         -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=OFF
         -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=OFF
@@ -99,6 +101,7 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_LLVM_DIS_BUILD=OFF
         -DLLVM_TOOL_LLVM_DIS_FUZZER_BUILD=OFF
         -DLLVM_TOOL_LLVM_DLANG_DEMANGLE_FUZZER_BUILD=OFF
+        -DLLVM_TOOL_LLVM_DRIVER_BUILD=ON
         -DLLVM_TOOL_LLVM_DWARFDUMP_BUILD=OFF
         -DLLVM_TOOL_LLVM_DWARFUTIL_BUILD=OFF
         -DLLVM_TOOL_LLVM_DWP_BUILD=OFF
@@ -121,7 +124,6 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_LLVM_MCA_BUILD=OFF
         -DLLVM_TOOL_LLVM_MICROSOFT_DEMANGLE_FUZZER_BUILD=OFF
         -DLLVM_TOOL_LLVM_MODEXTRACT_BUILD=OFF
-        -DLLVM_TOOL_LLVM_MT_BUILD=OFF
         -DLLVM_TOOL_LLVM_OPT_FUZZER_BUILD=OFF
         -DLLVM_TOOL_LLVM_OPT_REPORT_BUILD=OFF
         -DLLVM_TOOL_LLVM_PDBUTIL_BUILD=OFF
@@ -154,15 +156,82 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF
         -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF
         -DLLVM_TOOL_YAML2OBJ_BUILD=OFF
+        -DLLVM_ENABLE_ZLIB=ON
+        -DZLIB_LIBRARY=${CMAKE_INSTALL_PREFIX}/lib/libz.a
+        -DZLIB_INCLUDE_DIR=${CMAKE_INSTALL_PREFIX}/include
+        -DLLVM_ENABLE_ZSTD=ON
+        -DLLVM_USE_STATIC_ZSTD=ON
+        -Dzstd_LIBRARY=${CMAKE_INSTALL_PREFIX}/lib/libzstd.a
+        -Dzstd_INCLUDE_DIR=${CMAKE_INSTALL_PREFIX}/include
+        -DLLVM_ENABLE_LIBXML2=ON
+        -DLIBXML2_LIBRARIES=${CMAKE_INSTALL_PREFIX}/lib/libxml2
+        -DLIBXML2_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
         "-DLLVM_THINLTO_CACHE_PATH='${CMAKE_INSTALL_PREFIX}/llvm-thinlto'"
-        "-DCMAKE_C_FLAGS='-g0 -ftls-model=local-exec ${llvm_lto} ${llvm_pgo}'"
-        "-DCMAKE_CXX_FLAGS='-g0 -ftls-model=local-exec ${llvm_lto} ${llvm_pgo}'"
-        "-DCMAKE_EXE_LINKER_FLAGS='-fuse-ld=lld -Xlinker -s -Xlinker --icf=all -Xlinker --thinlto-cache-policy=cache_size_bytes=1g:prune_interval=1m'"
-        -DLLVM_TOOLCHAIN_TOOLS='llvm-driver,llvm-ar,llvm-ranlib,llvm-objdump,llvm-rc,llvm-cvtres,llvm-nm,llvm-strings,llvm-readobj,llvm-dlltool,llvm-pdbutil,llvm-objcopy,llvm-strip,llvm-cov,llvm-profdata,llvm-addr2line,llvm-symbolizer,llvm-windres,llvm-ml,llvm-readelf,llvm-size,llvm-config'
+        "-DCMAKE_C_FLAGS='-march=native -pipe -O3 -fno-math-errno -fno-signed-zeros -fno-trapping-math -falign-functions=32 -ffp-contract=fast -ftls-model=local-exec ${tlsdesc} ${llvm_lto} ${llvm_pgo} ${llvm_mllvm}'"
+        "-DCMAKE_CXX_FLAGS='-march=native -pipe -O3 -fno-math-errno -fno-signed-zeros -fno-trapping-math -falign-functions=32 -ffp-contract=fast -ftls-model=local-exec ${tlsdesc} ${llvm_lto} ${llvm_pgo} ${llvm_mllvm}'"
+        "-DCMAKE_EXE_LINKER_FLAGS='${CMAKE_INSTALL_PREFIX}/lib/mimalloc.o -fuse-ld=lld -Wl,--build-id=fast,--lto-O3,--lto-CGO3,-q,--icf=all,-zpack-relative-relocs,--thinlto-cache-policy=cache_size_bytes=4g:prune_interval=1m ${llvm_linker_flags} ${llvm_mllvm_ld}'"
+        -DLLVM_TOOLCHAIN_TOOLS='llvm-driver^^llvm-ar^^llvm-ranlib^^llvm-objdump^^llvm-rc^^llvm-cvtres^^llvm-nm^^llvm-strings^^llvm-readobj^^llvm-dlltool^^llvm-objcopy^^llvm-strip^^llvm-cov^^llvm-profdata^^llvm-addr2line^^llvm-symbolizer^^llvm-windres^^llvm-ml^^llvm-mt^^llvm-readelf^^llvm-size'
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
     INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
+
+ExternalProject_Add(sqlite-train
+    URL https://www.sqlite.org/2024/sqlite-autoconf-3460000.tar.gz
+    URL_HASH SHA3_256=83d2acf79453deb7d6520338b1f4585f12e39b27cd370fb08593afa198f471fc
+    DOWNLOAD_DIR ${SOURCE_LOCATION}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    BUILD_IN_SOURCE 1
+    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
+)
+
+cleanup(sqlite-train install)
+get_property(SQL_SRC TARGET sqlite-train PROPERTY _EP_SOURCE_DIR)
+ExternalProject_Add(llvm-bolt
+    DEPENDS
+        sqlite-train
+    SOURCE_DIR ${SQL_SRC}
+    DOWNLOAD_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ${EXEC} PATH=$O_PATH llvm-bolt
+        --instrument
+        --instrumentation-file-append-pid
+        --instrumentation-file=${CMAKE_INSTALL_PREFIX}/llvm-bolt/llvm
+        ${CMAKE_INSTALL_PREFIX}/bin/llvm
+        -o ${CMAKE_INSTALL_PREFIX}/bin/llvm.instr
+    COMMAND ${EXEC} mkdir -p ${CMAKE_INSTALL_PREFIX}/llvm-bolt
+    COMMAND ${EXEC} llvm.instr clang --target=${TARGET_CPU}-pc-windows-gnu --sysroot=${MINGW_INSTALL_PREFIX} -O3 -pipe -fdata-sections -ffunction-sections -ffp-contract=fast -funroll-loops -gcodeview -mguard=cf -g3 sqlite3.c shell.c -o sqlite3.exe
+    COMMAND ${EXEC} rm sqlite3.exe ${CMAKE_INSTALL_PREFIX}/bin/llvm.instr
+    COMMAND ${EXEC} merge-fdata ${CMAKE_INSTALL_PREFIX}/llvm-bolt/* -o llvm.fdata
+    COMMAND ${EXEC} rm -r ${CMAKE_INSTALL_PREFIX}/llvm-bolt
+    COMMAND ${EXEC} llvm-bolt
+        --data llvm.fdata
+        ${CMAKE_INSTALL_PREFIX}/bin/llvm
+        -o ${CMAKE_INSTALL_PREFIX}/bin/llvm.bolt
+        --dyno-stats
+        --cu-processing-batch-size=4
+        --eliminate-unreachable
+        --frame-opt=hot
+        --icf=1
+        --plt=hot
+        --reg-reassign
+        --reorder-blocks=ext-tsp
+        --reorder-functions=cdsort
+        --split-all-cold
+        --split-eh
+        --split-functions
+        --use-gnu-stack
+    COMMAND ${EXEC} llvm-strip -s ${CMAKE_INSTALL_PREFIX}/bin/llvm.bolt
+    COMMAND ${EXEC} rm -r <SOURCE_DIR>/llvm.fdata
+    INSTALL_COMMAND ${EXEC} mv ${CMAKE_INSTALL_PREFIX}/bin/llvm.bolt ${CMAKE_INSTALL_PREFIX}/bin/llvm
+    BUILD_IN_SOURCE 1
+    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
+)
+
+cleanup(llvm-bolt install)
 
 force_rebuild_git(llvm)
 cleanup(llvm install)

@@ -8,10 +8,8 @@ ExternalProject_Add(libzvbi
     GIT_REMOTE_NAME origin
     GIT_TAG main
     UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ${EXEC} <SOURCE_DIR>/autogen.sh && CONF=1 <SOURCE_DIR>/configure
-        --host=${TARGET_ARCH}
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --disable-shared
+    CONFIGURE_COMMAND ${EXEC} <SOURCE_DIR>/autogen.sh && ${EXEC} CONF=1 <SOURCE_DIR>/configure
+        ${autotools_conf_args}
         --enable-static
         --with-pic
         --without-doxygen

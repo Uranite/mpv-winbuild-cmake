@@ -3,8 +3,8 @@
 ExternalProject_Add(llvm-clang
     DEPENDS
         llvm-libcxx
-        winpthreads
-        gendef
+        mingw-w64-winpthreads
+        mingw-w64-gendef
         cppwinrt
     DOWNLOAD_COMMAND ""
     SOURCE_DIR ${SOURCE_LOCATION}

@@ -6,14 +6,9 @@ ExternalProject_Add(xxhash
     UPDATE_COMMAND ""
     GIT_REMOTE_NAME origin
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR>/cmake_unofficial -B<BINARY_DIR>
-        -G Ninja
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
-        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
-        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS=OFF
-        -DXXHASH_BUILD_XXHSUM=OFF
+        ${cmake_conf_args}
         ${xxhash_dispatch}
+        -DXXHASH_BUILD_XXHSUM=OFF
         -DCMAKE_C_FLAGS='${CMAKE_C_FLAGS} ${xxhash_cflags}'
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
     INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install

@@ -33,7 +33,6 @@ ExternalProject_Add(openssl
         no-tests
         threads
         no-docs
-        no-apps
         no-ocsp
         no-ssl3
         no-cmac
@@ -55,7 +54,6 @@ ExternalProject_Add(openssl
         no-md4
         no-cms
         no-cmp
-        no-dh
         no-bf
         zlib
     BUILD_COMMAND ${MAKE} build_sw

@@ -40,9 +40,8 @@ ExternalProject_Add(mpv-release
     URL ${LINK}
     SOURCE_DIR ${SOURCE_LOCATION}
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --libdir=${MINGW_INSTALL_PREFIX}/lib
-        --cross-file=${MESON_CROSS}
+        ${meson_conf_args}
+        --buildtype=custom
         --default-library=shared
         --prefer-static
         -Ddebug=true

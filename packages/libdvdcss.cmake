@@ -3,10 +3,8 @@ ExternalProject_Add(libdvdcss
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ${EXEC} autoreconf -fi && CONF=1 <SOURCE_DIR>/configure
-        --host=${TARGET_ARCH}
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --disable-shared
+    CONFIGURE_COMMAND ${EXEC} autoreconf -fi && ${EXEC} CONF=1 <SOURCE_DIR>/configure
+        ${autotools_conf_args}
         --disable-doc
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND ${MAKE} install

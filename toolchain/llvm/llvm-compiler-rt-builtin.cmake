@@ -28,10 +28,12 @@ ExternalProject_Add(llvm-compiler-rt-builtin
         -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
         -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
         -DSANITIZER_CXX_ABI=libc++
-    BUILD_COMMAND ${EXEC} LTO=0 ninja -C <BINARY_DIR>
-          COMMAND bash -c "cp <BINARY_DIR>/lib/windows/libclang* ${MINGW_INSTALL_PREFIX}/lib"
-    INSTALL_COMMAND ${EXEC} LTO=0 ninja -C <BINARY_DIR> install
+        -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
+    BUILD_COMMAND ${EXEC} LTO=0 PGO=0 ninja -C <BINARY_DIR>
+          COMMAND bash -c "cp <BINARY_DIR>/lib/${TARGET_CPU}-pc-windows-gnu/libclang* ${MINGW_INSTALL_PREFIX}/lib"
+    INSTALL_COMMAND ${EXEC} LTO=0 PGO=0 ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
 cleanup(llvm-compiler-rt-builtin install)
+tc_delete_dir(llvm-compiler-rt-builtin)

@@ -1,16 +1,12 @@
 ExternalProject_Add(dav1d
     DEPENDS
         xxhash
-    GIT_REPOSITORY https://code.videolan.org/videolan/dav1d.git
+    GIT_REPOSITORY https://github.com/videolan/dav1d.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --libdir=${MINGW_INSTALL_PREFIX}/lib
-        --cross-file=${MESON_CROSS}
-        --buildtype=release
-        --default-library=static
+        ${meson_conf_args}
         -Denable_tools=false
         -Denable_tests=false
         -Dxxhash_muxer=enabled

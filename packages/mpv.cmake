@@ -1,6 +1,7 @@
 ExternalProject_Add(mpv
     DEPENDS
         angle-headers
+        ${nvcodec-headers}
         ffmpeg
         fribidi
         lcms2
@@ -22,14 +23,15 @@ ExternalProject_Add(mpv
         spirv-cross
         vapoursynth
         libsdl2
+        libsixel
     GIT_REPOSITORY https://github.com/mpv-player/mpv.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
+    PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --libdir=${MINGW_INSTALL_PREFIX}/lib
-        --cross-file=${MESON_CROSS}
+        ${meson_conf_args}
+        --buildtype=custom
         --default-library=shared
         --prefer-static
         -Ddebug=true
@@ -52,11 +54,12 @@ ExternalProject_Add(mpv
         -Dspirv-cross=enabled
         -Dvulkan=enabled
         -Dvapoursynth=enabled
+        -Dsixel=enabled
+        -Dbuild-date=false
         ${mpv_gl}
-        -Dc_args='-Wno-error=int-conversion'
-    BUILD_COMMAND ${EXEC} LTO_JOB=1 PDB=1 ninja -C <BINARY_DIR>
+    BUILD_COMMAND ${EXEC} PDB=1 ninja -C <BINARY_DIR> mpv.com mpv.exe && ${EXEC} PDB=1 ninja -C <BINARY_DIR> install
     INSTALL_COMMAND ""
-    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
+    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_PATCH 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
 ExternalProject_Add_Step(mpv strip-binary

@@ -4,16 +4,14 @@ ExternalProject_Add(bzip2
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
-        -G Ninja
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
-        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
-        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS=OFF
+        ${cmake_conf_args}
         -DENABLE_LIB_ONLY=ON
         -DENABLE_SHARED_LIB=OFF
         -DENABLE_STATIC_LIB=ON
         -DENABLE_TESTS=OFF
+        -DCMAKE_UNITY_BUILD=ON
+        -DUNITY_BUILD_BATCH_SIZE=0
+        -DCMAKE_UNITY_BUILD_BATCH_SIZE=0
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
     INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
             COMMAND bash -c "mv ${MINGW_INSTALL_PREFIX}/lib/libbz2_static.a ${MINGW_INSTALL_PREFIX}/lib/libbz2.a"

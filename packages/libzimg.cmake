@@ -11,10 +11,8 @@ ExternalProject_Add(libzimg
     CONFIGURE_COMMAND ""
     COMMAND bash -c "rm -rf <SOURCE_DIR>/graphengine"
     COMMAND bash -c "ln -s ${src_graphengine} <SOURCE_DIR>/graphengine"
-    COMMAND ${EXEC} <SOURCE_DIR>/autogen.sh && CONF=1 <SOURCE_DIR>/configure
-        --host=${TARGET_ARCH}
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --disable-shared
+    COMMAND ${EXEC} <SOURCE_DIR>/autogen.sh && ${EXEC} CONF=1 <SOURCE_DIR>/configure
+        ${autotools_conf_args}
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND ${MAKE} install
             COMMAND bash -c "git -C ${src_graphengine} clean -dfx"

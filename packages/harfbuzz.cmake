@@ -10,15 +10,17 @@ ExternalProject_Add(harfbuzz
     GIT_CLONE_POST_COMMAND "sparse-checkout set --no-cone /* !test"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --libdir=${MINGW_INSTALL_PREFIX}/lib
-        --cross-file=${MESON_CROSS}
-        --buildtype=release
-        --default-library=static
+        ${meson_conf_args}
+        -Dunity=on
+        -Dunity_size=1024
+        -Dfreetype=enabled
+        -Dgdi=enabled
+        -Ddirectwrite=enabled
         -Dicu=disabled
         -Dglib=disabled
         -Dgobject=disabled
         -Dtests=disabled
+        -Dutilities=disabled
         -Ddocs=disabled
         -Dbenchmark=disabled
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
