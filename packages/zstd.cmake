@@ -15,7 +15,7 @@ ExternalProject_Add(zstd
         -DZSTD_BUILD_CONTRIB=OFF
         -DZSTD_BUILD_TESTS=OFF
         -DZSTD_LEGACY_SUPPORT=OFF
-        -DZSTD_BUILD_PROGRAMS=OFF
+        ${zstd_tools}
         -DZSTD_PROGRAMS_LINK_SHARED=OFF
         -DZSTD_BUILD_SHARED=OFF
         -DZSTD_BUILD_STATIC=ON

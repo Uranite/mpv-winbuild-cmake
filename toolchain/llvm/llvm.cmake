@@ -1,21 +1,24 @@
-set(clang_version "18")
+set(clang_version "19")
 ExternalProject_Add(llvm
     GIT_REPOSITORY https://github.com/llvm/llvm-project.git
     SOURCE_DIR ${SOURCE_LOCATION}
-    GIT_CLONE_FLAGS "--filter=tree:0"
+    GIT_CLONE_FLAGS "--sparse --filter=tree:0"
+    GIT_CLONE_POST_COMMAND "sparse-checkout set --no-cone '/*' '!*/test'"
     UPDATE_COMMAND ""
     GIT_REMOTE_NAME origin
-    GIT_TAG release/18.x
+    GIT_TAG main
     LIST_SEPARATOR ,
-    CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR>/llvm -B<BINARY_DIR>
+    CONFIGURE_COMMAND ${EXEC} CONF=1 PATH=$O_PATH cmake -H<SOURCE_DIR>/llvm -B<BINARY_DIR>
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_C_COMPILER=clang
         -DCMAKE_CXX_COMPILER=clang++
+        ${llvm_ccache}
+        "-DLLVM_THINLTO_CACHE_PATH='${CMAKE_INSTALL_PREFIX}/llvm-thinlto'"
         -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
         -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
-        -DLLVM_TARGETS_TO_BUILD='X86,NVPTX'
+        -DLLVM_TARGETS_TO_BUILD='AArch64,X86,NVPTX'
         -DLLVM_ENABLE_PROJECTS='clang,lld'
         -DLLVM_ENABLE_ASSERTIONS=OFF
         -DLLVM_ENABLE_LIBCXX=ON
@@ -42,6 +45,7 @@ ExternalProject_Add(llvm
         -DBUILD_SHARED_LIBS=OFF
         -DLIBCLANG_BUILD_STATIC=ON
         -DLLVM_BUILD_UTILS=OFF
+        -DCLANG_BUILD_TOOLS=OFF
         -DCLANG_TOOL_AMDGPU_ARCH_BUILD=OFF
         -DCLANG_TOOL_APINOTES_TEST_BUILD=OFF
         -DCLANG_TOOL_ARCMT_TEST_BUILD=OFF
@@ -53,6 +57,7 @@ ExternalProject_Add(llvm
         -DCLANG_TOOL_CLANG_FORMAT_BUILD=OFF
         -DCLANG_TOOL_CLANG_FORMAT_VS_BUILD=OFF
         -DCLANG_TOOL_CLANG_FUZZER_BUILD=OFF
+        -DCLANG_TOOL_CLANG_INSTALLAPI_BUILD=OFF
         -DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=OFF
         -DCLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD=OFF
         -DCLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD=OFF
@@ -75,6 +80,7 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_GOLD_BUILD=OFF
         -DLLVM_TOOL_LLC_BUILD=OFF
         -DLLVM_TOOL_LLI_BUILD=OFF
+        -DLLVM_TOOL_LLVM_DRIVER_BUILD=ON
         -DLLVM_TOOL_LLVM_AS_BUILD=OFF
         -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=OFF
         -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=OFF
@@ -141,10 +147,13 @@ ExternalProject_Add(llvm
         -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=OFF
         -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF
         -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF
-        "-DCMAKE_C_FLAGS='-g0'"
-        "-DCMAKE_CXX_FLAGS='-g0'"
-        "-DCMAKE_EXE_LINKER_FLAGS='-fuse-ld=lld -Xlinker --build-id=none -Xlinker -s -Xlinker --icf=all'"
-        -DLLVM_TOOLCHAIN_TOOLS='llvm-ar,llvm-ranlib,llvm-objdump,llvm-rc,llvm-cvtres,llvm-nm,llvm-strings,llvm-readobj,llvm-dlltool,llvm-pdbutil,llvm-objcopy,llvm-strip,llvm-cov,llvm-profdata,llvm-addr2line,llvm-symbolizer,llvm-windres,llvm-ml,llvm-readelf,llvm-size,llvm-config'
+        "-DCMAKE_C_FLAGS='-march=native -pipe -g0 ${llvm_pgo}'"
+        "-DCMAKE_CXX_FLAGS='-march=native -pipe -g0 ${llvm_pgo}'"
+        "-DCMAKE_EXE_LINKER_FLAGS='-fuse-ld=lld -Xlinker -s -Xlinker --icf=all -Xlinker --thinlto-cache-policy=cache_size_bytes=1g:prune_interval=1m'"
+        -DLLVM_ENABLE_ZSTD=OFF
+        -DLLVM_ENABLE_LIBXML2=OFF
+        -DLLVM_ENABLE_TERMINFO=OFF
+        -DLLVM_TOOLCHAIN_TOOLS='llvm-driver,llvm-ar,llvm-ranlib,llvm-objdump,llvm-rc,llvm-cvtres,llvm-nm,llvm-strings,llvm-readobj,llvm-dlltool,llvm-pdbutil,llvm-objcopy,llvm-strip,llvm-cov,llvm-profdata,llvm-addr2line,llvm-symbolizer,llvm-windres,llvm-ml,llvm-readelf,llvm-size,llvm-config'
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
     INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1

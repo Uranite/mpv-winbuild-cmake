@@ -1,10 +1,12 @@
 ExternalProject_Add(gcc
     DEPENDS
         mingw-w64-headers
-    URL https://mirrorservice.org/sites/sourceware.org/pub/gcc/snapshots/13-20240309/gcc-13-20240309.tar.xz
-    # https://mirrorservice.org/sites/sourceware.org/pub/gcc/snapshots/13-20240309/sha512.sum
-    URL_HASH SHA512=2d1e0374ebdee526f0549319fc9c364968c52a0d4aaa16759f00453cb083fe58d8f463c47d97f3bb74a0a92e251989eb75a50ee5800b4569978c72d25446b44e
-    DOWNLOAD_DIR ${SOURCE_LOCATION}
+    GIT_REPOSITORY https://github.com/gcc-mirror/gcc.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
+    GIT_TAG master
+    GIT_REMOTE_NAME origin
+    UPDATE_COMMAND ""
     CONFIGURE_COMMAND <SOURCE_DIR>/configure
         --target=${TARGET_ARCH}
         --prefix=${CMAKE_INSTALL_PREFIX}
@@ -16,13 +18,16 @@ ExternalProject_Add(gcc
         --disable-nls
         --disable-shared
         --disable-win32-registry
-        --with-arch=${GCC_ARCH}
-        --with-tune=generic
-        --enable-threads=posix
+        --enable-threads=win32
+        --enable-libstdcxx-threads=yes
         --without-included-gettext
         --enable-lto
-        --enable-checking=release
+        --disable-libgomp
+        --disable-checking
         --disable-sjlj-exceptions
+        --enable-default-pie
+        --enable-host-pie
+        --enable-host-bind-now
     BUILD_COMMAND make -j${MAKEJOBS} all-gcc
     INSTALL_COMMAND make install-strip-gcc
     STEP_TARGETS download install
@@ -41,4 +46,5 @@ ExternalProject_Add_Step(gcc final
     LOG 1
 )
 
+force_rebuild_git(gcc)
 cleanup(gcc final)

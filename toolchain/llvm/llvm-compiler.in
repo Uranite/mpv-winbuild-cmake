@@ -1,27 +1,42 @@
 #!/bin/bash
 PROG=@CMAKE_INSTALL_PREFIX@/bin/@clang_compiler@
-TARGET=@TARGET_ARCH@
-FLAGS="$FLAGS -target $TARGET -march=@GCC_ARCH@ -mtune=@M_TUNE@"
+TARGET=@TARGET_CPU@
+FLAGS="$FLAGS -target $TARGET-pc-windows-gnu -march=@GCC_ARCH@ -mtune=@M_TUNE@"
 FLAGS="$FLAGS @driver_mode@ --sysroot @MINGW_INSTALL_PREFIX@"
 FLAGS="$FLAGS -fuse-ld=lld --ld-path=@TARGET_ARCH@-ld"
-FLAGS="$FLAGS -Wno-unused-command-line-argument"
+FLAGS="$FLAGS -Wno-unused-command-line-argument -Wno-int-conversion -Wno-vla-cxx-extension -Wno-packed -Wno-unused-function -Wno-macro-redefined -Wno-backend-plugin"
+FLAGS="$FLAGS -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00 -DNDEBUG"
 
 if [ "$CONF" == "1" ]; then
-    SKIP_OPT="-g0 -O0 -fno-lto -fno-data-sections -fno-function-sections"
+    SKIP_OPT="-g0 -O0 -fno-lto -fno-data-sections -fno-function-sections -fno-whole-program-vtables"
 else
-    FLAGS="$FLAGS -gcodeview @cfi@ @opt@"
+    FLAGS="$FLAGS -gcodeview @clang_cfi@ @opt@ -pipe -fno-emulated-tls -fstrict-flex-arrays=3 -fvisibility=hidden -fstrict-vtable-pointers -fforce-emit-vtables"
     if [ "@ENABLE_CCACHE@" == "ON" ]; then
         CCACHE="ccache"
     fi
     if [ "$GC" != "0" ]; then
-        CLANG_GC="-fdata-sections -ffunction-sections"
+        CLANG_GC="-fdata-sections -ffunction-sections -funique-section-names -fomit-frame-pointer -momit-leaf-frame-pointer -fmerge-all-constants"
     fi
     if [ "$LTO" != "0" ] && [ "@CLANG_PACKAGES_LTO@" == "ON" ]; then
-        LTO_FLAGS="-flto=thin"
+        LTO_FLAGS="-flto=thin -fno-split-lto-unit"
         if [ "@LLD_LTO_ALL_THREADS@" == "ON" ] && [ "$LTO_JOB" != "1" ]; then
             LTO_FLAGS="$LTO_FLAGS -flto-jobs=@CPU_COUNT@"
         fi
+        if [ "$WPD" != "0" ]; then
+            LTO_FLAGS="$LTO_FLAGS -fwhole-program-vtables"
+        fi
+    fi
+    if [ "@LLVM_ENABLE_PGO@" == "GEN" ]; then
+        export LLVM_PROFILE_FILE="@LLVM_PROFILE_DATA_DIR@/clang-%m.profraw" #enable profraw output only when CONF!=1
     fi
 fi
 
-$CCACHE "$PROG" $LTO_FLAGS "$@" $FLAGS $CLANG_GC @CLANG_FLAGS@ @linker@ $SKIP_OPT
+if [ "@CLANG_PACKAGES_PGO@" == "GEN" ] && [ "$PGO" != "0" ]; then
+    PGO_FLAGS="-fprofile-generate="@CLANG_PACKAGES_PROFILE_DATA_DIR@" -fprofile-update=atomic"
+else
+    if [ "@CLANG_PACKAGES_PGO@" == "USE" ] && [ "$PGO" != "0" ]; then
+        PGO_FLAGS="-fprofile-use=@CLANG_PACKAGES_PROFDATA_FILE@"
+    fi
+fi
+
+$CCACHE "$PROG" $LTO_FLAGS $PGO_FLAGS "$@" $FLAGS $CLANG_GC @CLANG_FLAGS@ @linker@ $SKIP_OPT

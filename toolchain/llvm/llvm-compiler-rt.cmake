@@ -18,6 +18,8 @@ ExternalProject_Add(llvm-compiler-rt
         -DCOMPILER_RT_DEFAULT_TARGET_ONLY=TRUE
         -DCOMPILER_RT_USE_BUILTINS_LIBRARY=TRUE
         -DCOMPILER_RT_BUILD_BUILTINS=FALSE
+        -DCOMPILER_RT_INCLUDE_TESTS=FALSE
+        ${compiler_rt_cet}
         -DLLVM_CONFIG_PATH=""
         -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
@@ -25,8 +27,8 @@ ExternalProject_Add(llvm-compiler-rt
         -DSANITIZER_CXX_ABI=libc++
         -DCMAKE_CXX_FLAGS='-std=c++11'
         -DCMAKE_EXE_LINKER_FLAGS_INIT='-lc++abi'
-    BUILD_COMMAND ${EXEC} LTO=0 ninja -C <BINARY_DIR>
-    INSTALL_COMMAND ${EXEC} LTO=0 ninja -C <BINARY_DIR> install
+    BUILD_COMMAND ${EXEC} LTO=0 PGO=0 ninja -C <BINARY_DIR>
+    INSTALL_COMMAND ${EXEC} LTO=0 PGO=0 ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 cleanup(llvm-compiler-rt install)

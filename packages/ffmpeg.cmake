@@ -2,7 +2,7 @@ ExternalProject_Add(ffmpeg
     DEPENDS
         amf-headers
         avisynth-headers
-        nvcodec-headers
+        ${nvcodec-headers}
         bzip2
         lame
         lcms2
@@ -16,7 +16,6 @@ ExternalProject_Add(ffmpeg
         libmodplug
         libpng
         libsoxr
-        libbs2b
         libvpx
         libwebp
         libzimg
@@ -26,9 +25,7 @@ ExternalProject_Add(ffmpeg
         opus
         speex
         vorbis
-        x264
-        ${ffmpeg_x265}
-        xvidcore
+        x265
         libxml2
         libvpl
         libopenmpt
@@ -39,16 +36,22 @@ ExternalProject_Add(ffmpeg
         libaribcaption
         aom
         rav1e
+        svtav1
         dav1d
-        vapoursynth
-        uavs3d
-        davs2
+        ${vapoursynth}
         rubberband
         libva
         openal-soft
+        fdk-aac
+        opencl
+        vulkan
+        vmaf
+        directx-header
+        game-music-emu
     GIT_REPOSITORY https://github.com/FFmpeg/FFmpeg.git
     SOURCE_DIR ${SOURCE_LOCATION}
-    GIT_CLONE_FLAGS "--filter=tree:0"
+    GIT_CLONE_FLAGS "--sparse --filter=tree:0"
+    GIT_CLONE_POST_COMMAND "sparse-checkout set --no-cone '/*' '!tests/ref/fate'"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 <SOURCE_DIR>/configure
         --cross-prefix=${TARGET_ARCH}-
@@ -61,9 +64,10 @@ ExternalProject_Add(ffmpeg
         ${ffmpeg_hardcoded_tables}
         --enable-gpl
         --enable-version3
+        --enable-nonfree
         --enable-postproc
         --enable-avisynth
-        --enable-vapoursynth
+        ${ffmpeg_vapoursynth}
         --enable-libass
         --enable-libbluray
         --enable-libdvdnav
@@ -75,23 +79,20 @@ ExternalProject_Add(ffmpeg
         --enable-libmodplug
         --enable-libopenmpt
         --enable-libmp3lame
+        --enable-libgme
         --enable-lcms2
         --enable-libopus
         --enable-libsoxr
         --enable-libspeex
         --enable-libvorbis
-        --enable-libbs2b
         --enable-librubberband
         --enable-libvpx
         --enable-libwebp
-        --enable-libx264
         --enable-libx265
         --enable-libaom
         --enable-librav1e
+        --enable-libsvtav1
         --enable-libdav1d
-        --enable-libdavs2
-        --enable-libuavs3d
-        --enable-libxvid
         --enable-libzimg
         --enable-openssl
         --enable-libxml2
@@ -104,10 +105,7 @@ ExternalProject_Add(ffmpeg
         --enable-libshaderc
         --enable-libzvbi
         --enable-libaribcaption
-        --enable-cuda-llvm
-        --enable-cuvid
-        --enable-nvdec
-        --enable-nvenc
+        ${ffmpeg_cuda}
         --enable-amf
         --enable-openal
         --enable-opengl
@@ -115,12 +113,20 @@ ExternalProject_Add(ffmpeg
         --disable-ffplay
         --disable-ffprobe
         --enable-vaapi
+        --enable-libfdk-aac
+        --enable-libvmaf
+        --enable-opencl
+        --enable-openal
+        --enable-opengl
         --disable-vdpau
         --disable-videotoolbox
         --disable-decoder=libaom_av1
+        --disable-stripping
+        --disable-ptx-compression
         ${ffmpeg_lto}
-        --extra-cflags='-Wno-error=int-conversion'
+        --extra-cflags='-I${MINGW_INSTALL_PREFIX}/include/directx -D__REQUIRED_RPCNDR_H_VERSION__=475'
         "--extra-libs='${ffmpeg_extra_libs}'" # -lstdc++ / -lc++ needs by libjxl and shaderc
+        "--nvccflags='--cuda-gpu-arch=sm_86 -O3'"
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND ${MAKE} install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1

@@ -18,6 +18,7 @@ list(APPEND ep
     llvm-openmp
     winpthreads
     llvm-clang
+    cppwinrt
 )
 foreach(package IN LISTS ep)
     if(NOT ${SINGLE_SOURCE_LOCATION} STREQUAL "")
