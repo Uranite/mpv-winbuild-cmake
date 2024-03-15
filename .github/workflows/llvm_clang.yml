@@ -18,10 +18,16 @@ jobs:
     strategy:
       fail-fast: false
     container:
-        image: docker://ghcr.io/shinchiro/archlinux:latest
+        image: cachyos/cachyos-v3:latest
     steps:
       - name: Setup git config
         run: |
+          sudo pacman -Syu --noconfirm
+          sudo pacman -S --noconfirm --needed base-devel git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz llvm clang lld libc++ libc++abi python-pip curl wget python-cairo mimalloc ccache
+          mkdir -p /home/opt/7zip
+          wget -qO - https://www.7-zip.org/a/7z2301-linux-x64.tar.xz | tar -xJf - -C /home/opt/7zip 7zzs
+          sudo ln -s /home/opt/7zip/7zzs /usr/bin/7z
+          pip3 install -U --break-system-packages setuptools rst2pdf mako jsonschema meson
           git config --global user.name "github-actions"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global pull.rebase true
@@ -51,6 +57,7 @@ jobs:
 
       - name: Loading x86_64_v3 toolchain
         id: x86_64_v3_cache
+        if: false
         uses: actions/cache/restore@main
         with:
           path: build_x86_64_v3
@@ -59,6 +66,7 @@ jobs:
 
       - name: Loading i686 toolchain
         id: i686_cache
+        if: false
         uses: actions/cache/restore@main
         with:
           path: build_i686
@@ -67,7 +75,6 @@ jobs:
 
       - name: Loading aarch64 toolchain
         id: aarch64_cache
-        if: false
         uses: actions/cache/restore@main
         with:
           path: build_aarch64
@@ -88,10 +95,10 @@ jobs:
         continue-on-error: true
         run: ${{ github.event.inputs.command }}
 
-      - name: Building LLVM
+      - name: Building LLVM with ThinLTO and IR Profile Instrumentation
         if: ${{ steps.clang_root_cache.outputs.cache-matched-key == '' }}
         run: |
-          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
+          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=GEN -DGCC_ARCH=x86-64-v3 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
           ninja -C build_x86_64 llvm
           ninja -C build_x86_64 rustup
           ninja -C build_x86_64 cargo-clean
@@ -99,26 +106,61 @@ jobs:
       - name: Building x86_64 toolchain
         if: ${{ steps.x86_64_cache.outputs.cache-matched-key == '' }}
         run: |
-          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
+          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=GEN -DGCC_ARCH=x86-64-v3 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
           ninja -C build_x86_64 llvm-clang
 
       - name: Building x86_64-v3 toolchain
-        if: ${{ steps.x86_64_v3_cache.outputs.cache-matched-key == '' }}
+        if: false
         run: |
           cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang -DGCC_ARCH=x86-64-v3 -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64_v3/x86_64_v3-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64_v3 -S $PWD
           ninja -C build_x86_64_v3 llvm-clang
 
       - name: Building i686 toolchain
-        if: ${{ steps.i686_cache.outputs.cache-matched-key == '' }}
+        if: false
         run: |
           cmake -DTARGET_ARCH=i686-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_i686/i686-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_i686 -S $PWD
           ninja -C build_i686 llvm-clang
 
       - name: Building aarch64 toolchain
-        if: false
+        if: ${{ steps.aarch64_cache.outputs.cache-matched-key == '' }}
         run: |
-          cmake -DTARGET_ARCH=aarch64-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_aarch64/aarch64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_aarch64 -S $PWD
+          cmake -DTARGET_ARCH=aarch64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=GEN -DGCC_ARCH=armv8.2-a -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_aarch64/aarch64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_aarch64 -S $PWD
           ninja -C build_aarch64 llvm-clang
+
+      - name: PGO training with shaderc x86_64
+        if: ${{ steps.clang_root_cache.outputs.cache-matched-key == '' }}
+        run: |
+          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=GEN -DCLANG_PACKAGES_LTO=ON -DGCC_ARCH=x86-64-v3 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
+          ninja -C build_x86_64 shaderc
+
+      - name: PGO training with shaderc aarch64
+        if: ${{ steps.clang_root_cache.outputs.cache-matched-key == '' }}
+        run: |
+          cmake -DTARGET_ARCH=aarch64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=GEN -DCLANG_PACKAGES_LTO=ON -DGCC_ARCH=armv8.2-a -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_aarch64/aarch64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_aarch64 -S $PWD
+          ninja -C build_aarch64 shaderc
+
+      - name: Merging profraw to profdata
+        if: ${{ steps.clang_root_cache.outputs.cache-matched-key == '' }}
+        run: |
+          llvm-profdata merge $PWD/clang_root/profiles/*.profraw -o llvm.profdata
+          rm -rf $PWD/clang_root/profiles/* || true
+
+      - name: Building LLVM with ThinLTO and PGO
+        if: ${{ steps.clang_root_cache.outputs.cache-matched-key == '' }}
+        run: |
+          cmake -DTARGET_ARCH=x86_64-w64-mingw32 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PGO=USE -DLLVM_PROFDATA_FILE="llvm.profdata" -DGCC_ARCH=x86-64-v3 -DCOMPILER_TOOLCHAIN=clang -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_x86_64/x86_64-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -G Ninja -B build_x86_64 -S $PWD
+          ninja -C build_x86_64 llvm
+
+      - name: Upload llvm
+        uses: ncipollo/release-action@v1
+        with:
+          prerelease: false
+          artifacts: $PWD/clang_root/bin/llvm
+          replacesArtifacts: true
+          tag: llvm
+          name: llvm
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup
         run: |
@@ -148,18 +190,21 @@ jobs:
           key: ${{ secrets.CACHE_VERSION }}-clang_root-${{ github.run_id }}
 
       - name: Saving x86_64 toolchain
+        if: false
         uses: actions/cache/save@main
         with:
           path: build_x86_64
           key: ${{ secrets.CACHE_VERSION }}-clang-x86_64_toolchain-${{ github.run_id }}
 
       - name: Saving x86_64_v3 toolchain
+        if: false
         uses: actions/cache/save@main
         with:
           path: build_x86_64_v3
           key: ${{ secrets.CACHE_VERSION }}-clang-x86_64_v3_toolchain-${{ github.run_id }}
 
       - name: Saving i686 toolchain
+        if: false
         uses: actions/cache/save@main
         with:
           path: build_i686
