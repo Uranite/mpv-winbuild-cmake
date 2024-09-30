@@ -1,5 +1,5 @@
 ExternalProject_Add(svtav1
-    GIT_REPOSITORY https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    GIT_REPOSITORY https://github.com/gianni-rosato/svt-av1-psy.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
@@ -7,7 +7,6 @@ ExternalProject_Add(svtav1
         ${cmake_conf_args}
         -DENABLE_AVX512=ON
         -DBUILD_TESTING=OFF
-        -DBUILD_ENC=ON
         -DSVT_AV1_LTO=OFF
         -DBUILD_APPS=ON
     BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
